@@ -23,3 +23,5 @@ clean:
 	rm hostCode.o
 	rm gpuCode.o;
 	rm animate.o;
+
+# hello mister brady!!!!!!
