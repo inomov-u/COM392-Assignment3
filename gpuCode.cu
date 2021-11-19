@@ -76,8 +76,10 @@ return 0;
 int updatePalette(GPU_Palette* P){
 
   updateReds <<< P->gBlocks, P->gThreads >>> (P->red);
-  updateGreens <<< P->gBlocks, P->gThreads >>> (P->green);
+  //updateGreens <<< P->gBlocks, P->gThreads >>> (P->green);
 	updateBlues <<< P->gBlocks, P->gThreads >>> (P->blue);
+
+  runRotation <<< P->gBlocks, P->gThreads >>> (P->green, P->red, P->blue, P->num_pixels);
 
   return 0;
 }
@@ -89,8 +91,31 @@ __global__ void updateReds(float* red){
   int y = threadIdx.y + (blockIdx.y * blockDim.y);
   int vecIdx = x + (y * blockDim.x * gridDim.x);
 
-//  red[vecIdx] = red[vecIdx] * .99;
+  red[vecIdx] = 0;
 
+}
+
+/******************************************************************************/
+__global__ void runRotation(float* green, float* red, float* blue, long strandLength){
+
+  int x = threadIdx.x + (blockIdx.x * blockDim.x);
+  int y = threadIdx.y + (blockIdx.y * blockDim.y);
+  int tid = x + (y * blockDim.x * gridDim.x);
+
+  //blue[tid] = green[strandLength - 1 - tid];
+  // for(long i = startIdx; i < endIdx; i++){  // i = start index of strand2
+  float acc = 0.0;
+  long the_index;
+  for(long j = 0; j < strandLength; j++){
+    the_index = j+tid;
+    if (the_index >= strandLength) the_index = the_index - strandLength;
+    acc += abs((green[j] - green[strandLength - 1 - the_index]));
+  }
+
+  float avg = (float) (acc * 1.0 )/strandLength; // score for the rotation
+
+
+  red[tid] = avg;
 }
 
 /******************************************************************************/
@@ -100,7 +125,7 @@ __global__ void updateGreens(float* green){
   int y = threadIdx.y + (blockIdx.y * blockDim.y);
   int vecIdx = x + (y * blockDim.x * gridDim.x);
 
-//  green[vecIdx] = green[vecIdx] *.888;
+  green[vecIdx] = 0;
 }
 
 /******************************************************************************/
@@ -110,18 +135,7 @@ __global__ void updateBlues(float* blue){
   int y = threadIdx.y + (blockIdx.y * blockDim.y);
   int vecIdx = x + (y * blockDim.x * gridDim.x);
 
-  // // find neighborhood average blue value
-  // float acc = 0.0;
-  // for (int i = -5; i <= 5; i++){
-  //   for (int j = -5; j <= 5; j++){
-  //     acc += tex2D(texBlue, x+i, y+j);
-  //   }
-  // }
-  // acc /= 121.0;
-  //
-  //
-
-  //  blue[vecIdx] = acc;
+  blue[vecIdx] = 0;
 }
 
 

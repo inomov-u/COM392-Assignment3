@@ -31,9 +31,9 @@ int readHeader(AParams* PARAMS, FILE* infp){
 	PARAMS->height = *(int*)&header[22];
 	PARAMS->size = 3 * PARAMS->width * PARAMS->height;	// three colors per pixel
 
-	if (PARAMS->verbosity){
-		printf("size of array = %lu x %lu = %lu\n",
-					PARAMS->width, PARAMS->height, PARAMS->size);
+	if (PARAMS->verbosity == 1){
+		printf("size of green map = %lu x %lu = %lu\n",
+					PARAMS->width, PARAMS->height, PARAMS->size/3);
 		}
 
   return 0;
@@ -100,10 +100,26 @@ int runEx2(AParams* PARAMS){
   cudaMalloc((void**) &animation.dev_bitmap, animation.image_size());
   animation.initAnimation();
 
-  while(1){
-     int err = updatePalette(&P1);
-     animation.drawPalette(PARAMS->width, PARAMS->height);
-   	}
+  int err = updatePalette(&P1);
+
+  // while(1){
+  // //   int err = updatePalette(&P1);
+  //    animation.drawPalette(PARAMS->width, PARAMS->height);
+  // }
+
+  cudaMemcpy(redmap, P1.red, P1.memSize, cD2H);
+
+
+  long winningThread = 0;
+  float bestMatch = 1000.0;
+  for(int i = 0; i < P1.num_pixels; i++){
+     if (redmap[i] < bestMatch){
+       bestMatch = redmap[i];
+       winningThread = i;
+     }
+  }
+
+  printf("match = %f, rotation =%d\n", bestMatch, winningThread);
 
 
 	free(graymap);
